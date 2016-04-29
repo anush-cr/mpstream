@@ -1,0 +1,23 @@
+client: on pressing back to video list, stop buffering by sending config packet to server
+client: add player thread and access buffer + synchronization
+client: exit neighbour manager and neighbour handler on video stop
+server: send asize and vsize with metadata
+server: implement different video files
+all: add metrics for measurements
+all: add status bar changes
+all: quit gracefully on end of video
+all: change exception handling to log exceptions
+
+
+
+
+ffmpeg -i 1.m4a -acodec libmp3lame -ab 320k HOA257.mp3
+ffmpeg -i clip8.mp4 -c:v libx264 -ar 22050 -crf 28 clip7.flv
+
+tc commands
+sudo tc qdisc add dev lo root handle 1: htb default 10
+sudo tc class add dev lo parent 1: classid 1:1 htb rate 3000kbps ceil 3500kbps
+sudo tc class add dev lo parent 1:1 classid 1:11 htb rate 400kbps ceil 450kbps
+sudo tc filter add dev lo protocol ip parent 1:0 prio 1 u32 match ip src 127.0.0.60 flowid 1:11
+sudo tc class add dev lo parent 1:1 classid 1:10 htb rate 3000kbps ceil 3500kbps
+sudo tc qdisc del dev lo root
