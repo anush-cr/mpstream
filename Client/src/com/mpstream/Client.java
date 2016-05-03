@@ -10,6 +10,8 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.ParseException;
@@ -26,7 +28,9 @@ public class Client {
     public ImageComponent videoScreen;
     private BufferedImage image;
     private Client client;
-    public volatile boolean exitFlag; //shared by all threads
+    public Socket server;
+    public long bufferTime = 0;
+    public volatile boolean exitFlag, doneFlag=false;
     
     private class VideoClickListener implements ActionListener {
         @Override
@@ -34,9 +38,17 @@ public class Client {
             JButton btn = (JButton)e.getSource();
             int id = Integer.parseInt((String)btn.getClientProperty("id"));
             if(id==-1){
+                try {
+                    configPacket cp = new configPacket(configPacket.CMD.STOP);
+                    ObjectOutputStream out = new ObjectOutputStream(server.getOutputStream());
+                    out.writeObject(cp);
+                } catch (IOException ex) {
+                    Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 exitFlag = true;
                 mainFrame.add(controlPanel,BorderLayout.NORTH);
                 mainFrame.remove(videoPanel);
+                client.statusLabel.setText("Status bar:\nDisplaying video list");
             }
             else {
                 String name = (String)btn.getClientProperty("name");
@@ -47,13 +59,11 @@ public class Client {
                 mainFrame.add(videoPanel,BorderLayout.NORTH);
                 try {
                     configPacket cp = new configPacket(configPacket.CMD.REQ, id);
-                    String serverName = "192.168.0.104";
+                    String serverName = "192.168.0.107";
                     int port = 2000;
-                    System.out.println("Connecting to " + serverName +
-                            " on port " + port);
-                    Socket server = new Socket(serverName, port);
-                    System.out.println("Just connected to " 
-                            + server.getRemoteSocketAddress());
+                    System.out.println("Connecting to " + serverName + " on port " + port);
+                    server = new Socket(serverName, port);
+                    System.out.println("Just connected to " + server.getRemoteSocketAddress());
                     ObjectOutputStream out = new ObjectOutputStream(server.getOutputStream());
                     out.writeObject(cp);
                     ObjectInputStream in = new ObjectInputStream(server.getInputStream());
@@ -62,11 +72,9 @@ public class Client {
                         if(obj instanceof configPacket) {
                             configPacket resPacket = (configPacket)obj;
                             if(resPacket.cmd == configPacket.CMD.META) {
+                                System.out.println("Received metadata from server");
                                 exitFlag = false;
-                                //TODO: change parameteres to asize and vsize
                                 Buffer buffer = new Buffer(resPacket.getAsize()+1,resPacket.getVsize()+1);
-                                //Buffer buffer = new Buffer(8000,5000);
-                                //TODO: initialize player
                                 Player Pl = new Player(buffer,client);
                                 Pl.start();
                                 PlanManager P = new PlanManager(server, in, mainFrame, videoScreen,buffer,client);
@@ -76,10 +84,10 @@ public class Client {
                             }
                         }
                     } catch (ClassNotFoundException ex) {
-                        ex.printStackTrace();
+                        Logger.getLogger(VideoClickListener.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 } catch(IOException ex) {
-                    ex.printStackTrace();
+                    Logger.getLogger(VideoClickListener.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             mainFrame.validate();
@@ -99,12 +107,6 @@ public class Client {
     
     private void execute() {
         client = this;
-        Component[] components = videoPanel.getComponents();
-        //System.out.println(controlPanel.getTopLevelAncestor().toString());
-        for (int i = 0; i < components.length; i++) {
-            //System.out.println(components[i].toString());
-            //Rectangle bounds = components[i].getBounds();
-        }
     }
     
     private void prepareGUI() {
@@ -162,12 +164,12 @@ public class Client {
                 } 
                 i++;
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ParseException e) {
-            e.printStackTrace();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (ParseException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
         }       
         videoPanel = new JPanel();
         videoPanel.setPreferredSize(new Dimension(640, 380));

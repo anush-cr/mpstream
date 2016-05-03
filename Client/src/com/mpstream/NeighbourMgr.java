@@ -26,7 +26,7 @@ public class NeighbourMgr implements Runnable {
         @Override
         public void run() {
             try {
-                System.out.println("Waiting for neighbours on port " + server.getLocalPort() + "...");
+                System.out.println("\nWaiting for neighbours on port " + server.getLocalPort() + "...");
                 for(;;) {
                     if(client.exitFlag)
                         break;
@@ -37,8 +37,8 @@ public class NeighbourMgr implements Runnable {
                     frameReceiver f = new frameReceiver(in,buffer,client);
                     f.start();
                 }
-            } catch(Exception e) {
-                e.printStackTrace();                
+            } catch(Exception ex) {
+                Logger.getLogger(neighbourHandler.class.getName()).log(Level.SEVERE, null, ex);                
             }
             System.out.println("Thread " +  threadName + " exiting.");
         }
@@ -73,42 +73,36 @@ public class NeighbourMgr implements Runnable {
                         videoPacket vp = (videoPacket)obj;
                         obj = null;
                         IVideoPicture videoPic = vp.getvideoPic();
-                        //System.out.println("Received Video "+vp.id);
                         synchronized (buffer.videoList) {
                             if(buffer.videoList != null) {
-                                //System.out.println("Buffer size " + buffer.videoList.indexOf(null));
                                 buffer.videoList.set(vp.id, videoPic);
                             }
                         }
                         vp.buf = null;
-                        //videoPic.delete();
                         vp = null;
                     } else if(obj instanceof audioPacket) {
                         audioPacket ap = (audioPacket)obj;
                         obj = null;
                         IAudioSamples audioSample = ap.getAudioSample();
-                        //System.out.println("Received Audio "+ap.id);
                         synchronized (buffer.audioList) {
                             if(buffer.audioList != null)
                                 buffer.audioList.set(ap.id, audioSample);
                         }
                         ap.buf = null;
-                        //audioSample.delete();
                         ap = null;
                     }
                 } catch(IOException ex) {
-                    ex.printStackTrace();
+                    Logger.getLogger(frameReceiver.class.getName()).log(Level.SEVERE, null, ex);
                     break;
                 } catch (ClassNotFoundException ex) {
-                    ex.printStackTrace();
+                    Logger.getLogger(frameReceiver.class.getName()).log(Level.SEVERE, null, ex);
                     break;
                 }
             }
             try {
                 input.close();
             } catch (IOException ex) {
-                ex.printStackTrace();
-                //Logger.getLogger(NeighbourMgr.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(frameReceiver.class.getName()).log(Level.SEVERE, null, ex);
             }
             System.out.println("Thread " +  threadName + " exiting.");
         }
@@ -156,7 +150,7 @@ public class NeighbourMgr implements Runnable {
             cp.setTransactionId(tid);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             for(;;) {
-                if(client.exitFlag)
+                if(client.exitFlag || client.doneFlag)
                     break;
                 baos.reset();
                 ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -178,7 +172,7 @@ public class NeighbourMgr implements Runnable {
                         InterfaceAddress ia = it.next();
                         InetAddress broadcastAddr = ia.getBroadcast();
                         if(broadcastAddr != null) {
-                            System.out.println(ia.getAddress().getHostAddress());
+                            System.out.println("Broadcasting on "+ia.getAddress().getHostAddress());
                             packet = new DatagramPacket(new byte[1], 1, broadcastAddr, DEFAULT_PORT);
                             packet.setData(buf);
                             packet.setLength(buf.length);
@@ -194,10 +188,9 @@ public class NeighbourMgr implements Runnable {
         }
         catch( Exception ex )
         {
-            ex.printStackTrace();
+            Logger.getLogger(NeighbourMgr.class.getName()).log(Level.SEVERE, null, ex);
             System.out.println("Problem creating socket on port: " + DEFAULT_PORT );
         }
-        
         System.out.println("Thread " +  threadName + " exiting.");
     }
     

@@ -15,7 +15,7 @@ public class configPacket implements Serializable{
     public int[] neighbours;
     private int TransactionId = -1,Asize=-1,Vsize=-1;
     public enum CMD {
-        REQ,DONE,RSND,RMVN,ADDED,HLPR,META,ERR,NREQ
+        REQ,DONE,RSND,STOP,HLPR,META,ERR,NREQ
     }
     public configPacket(configPacket.CMD c) {
         this.cmd = c;
@@ -24,16 +24,6 @@ public class configPacket implements Serializable{
         this.cmd = c;
         this.videoId = vid;
     }
-    public configPacket(configPacket.CMD c, int[] nar) {
-        this.cmd = c;
-        this.neighbours = nar;
-    }
-    /*public void setCmd(configPacket.CMD c) {
-        this.cmd = c;
-    }
-    public configPacket.CMD getCmd() {
-        return this.cmd;
-    }*/
     public void setTransactionId(int t) {
         this.TransactionId = t;
     }

@@ -71,7 +71,7 @@
 
     -->
     <target name="package-for-launch4j" depends="clean,compile,jar">
-        <property name="launch4jexe.dir" location="/home/anush_cr/.ides/launch4j" />
+        <property name="launch4jexe.dir" location="/home/anush/.ides/launch4j" />
         <taskdef name="launch4j"
                  classname="net.sf.launch4j.ant.Launch4jTask"
                  classpath="${launch4jexe.dir}/launch4j.jar

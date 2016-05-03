@@ -70,15 +70,16 @@ public class reader {
         if(container.readNextPacket(packet) >= 0) {
             //Now we have a packet, let's see if it belongs to our video stream
             if (packet.getStreamIndex() == videoStreamId) {
-                if(v2 == 0 || v2%3 == 0) {
-                    //We allocate a new picture to get the data out of Xuggler
-                    IVideoPicture picture = IVideoPicture.make(videoCoder.getPixelType(), videoCoder.getWidth(), videoCoder.getHeight());
-                    //Now, we decode the video, checking for any errors.
-                    int bytesDecoded = videoCoder.decodeVideo(picture, packet, 0);
-                    if (bytesDecoded < 0)
-                        throw new RuntimeException("got error decoding audio in: " + file);
-                    //check if picture packet from decoder is complete
-                    if (picture.isComplete()) {
+                //We allocate a new picture to get the data out of Xuggler
+                IVideoPicture picture = IVideoPicture.make(videoCoder.getPixelType(), videoCoder.getWidth(), videoCoder.getHeight());
+                //Now, we decode the video, checking for any errors.
+                int bytesDecoded = videoCoder.decodeVideo(picture, packet, 0);
+                if (bytesDecoded < 0)
+                    throw new RuntimeException("got error decoding audio in: " + file);
+                //check if picture packet from decoder is complete
+                if (picture.isComplete()) {
+                    if(v2 == 0 || v2%3 == 0) {
+                        v2++;
                         videoPacket vp = null;
                         try {
                             vp = new videoPacket(v++,picture);
@@ -89,9 +90,12 @@ public class reader {
                         packet.delete();
                         picture.delete();
                         return vp;
+                    } else {
+                        v2++;
+                        packet.delete();
+                        picture.delete();
+                        return null;
                     }
-                } else {
-                    //return null;
                 }
             } else if (packet.getStreamIndex() == audioStreamId) {
                 //We allocate a set of samples with the same number of channels as the coder tells us is in this buffer.

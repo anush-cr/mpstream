@@ -8,6 +8,8 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -41,16 +43,38 @@ class PlanHandler implements Runnable {
             if(tn.err)
                 break;
             try {
-                System.out.println(input.readObject().toString());
+                Object obj = input.readObject();
+                if(obj instanceof configPacket) {
+                    configPacket cp = (configPacket)obj;
+                    if(cp.cmd == configPacket.CMD.STOP)
+                        break;
+                }
             } catch(IOException ex) {
-                ex.printStackTrace();
+                Logger.getLogger(PlanHandler.class.getName()).log(Level.SEVERE, null, ex);
                 break;
             } catch(ClassNotFoundException ex) {
-                ex.printStackTrace();
+                Logger.getLogger(PlanHandler.class.getName()).log(Level.SEVERE, null, ex);
                 break;
             }
         }
         tn.err = true;
+        try {
+            tn.in.close();
+        } catch (IOException ex) {
+            Logger.getLogger(PlanHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        Iterator iter = tn.devices.iterator();
+        while(iter.hasNext()) {
+            Object device = iter.next();
+            ObjectOutputStream out = (ObjectOutputStream)device;
+            try {
+                out.close();
+                tn.devices.remove(device);
+            } catch (IOException ex) {
+                tn.devices.remove(device);
+                Logger.getLogger(PlanHandler.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
         System.out.println("Thread " +  threadName + " exiting.");
     }
     public void start() {
@@ -83,15 +107,21 @@ class frameDistributor implements Runnable {
     @Override
     public void run() {
             int i = 0;
-            int flag = 0;
-            boolean resetFlag = false;
         for(;;) {
             if(tn.err)
                 break;
-            //scan transaction queue for new commands add,remove,resend
-            //perform operations
-            if(i%100 == 0){
-                resetFlag = true;
+            if(i++%100 == 0){
+                Iterator iter = tn.devices.iterator();
+                while(iter.hasNext()) {
+                    Object device = iter.next();
+                    ObjectOutputStream out = (ObjectOutputStream)device;
+                    try {
+                        out.reset();
+                    } catch (IOException ex) {
+                        tn.devices.remove(device);
+                        Logger.getLogger(frameDistributor.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
             }
             if(tn.devices.size() == 0)
                 break;
@@ -110,7 +140,7 @@ class frameDistributor implements Runnable {
                             output.writeObject(cp);
                             cp = null;
                         } catch(IOException ex) {
-                            ex.printStackTrace();
+                            Logger.getLogger(frameDistributor.class.getName()).log(Level.SEVERE, null, ex);
                             break;
                         }
                         break;
@@ -119,16 +149,14 @@ class frameDistributor implements Runnable {
                         try {
                             try {
                                 ObjectOutputStream out = (ObjectOutputStream)device;
-                                if(resetFlag)
-                                    out.reset();
                                 out.writeObject(obj);
                             } catch(SocketException ex) {
                                 tn.devices.remove(device);
-                                ex.printStackTrace();
+                                Logger.getLogger(frameDistributor.class.getName()).log(Level.SEVERE, null, ex);
                             }                                
                             obj = null;
                         } catch(Exception ex) {
-                            ex.printStackTrace();
+                            Logger.getLogger(frameDistributor.class.getName()).log(Level.SEVERE, null, ex);
                             break;
                         }
                     } else {
@@ -136,8 +164,6 @@ class frameDistributor implements Runnable {
                     }
                 }
             }
-            resetFlag = false;
-            //loop through neighbours array
         }
         try {
             output.close();
@@ -193,15 +219,17 @@ public class Server {
                                     break;
                                 }
                             }
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (ParseException e) {
-                            e.printStackTrace();
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (IOException ex) {
+                            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (ParseException ex) {
+                            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
                         }
                         if(!found) {
                             //return error to client
+                            configPacket resPacket = new configPacket(configPacket.CMD.ERR);
+                            out.writeObject(resPacket);
                         } else {
                             System.out.println("Client requested Video: "+name); 
                             transaction t = new transaction(in,out);
@@ -225,8 +253,8 @@ public class Server {
                     }
                 }
             }
-        } catch(Exception e) {
-            e.printStackTrace();
+        } catch(Exception ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }
         
     }

@@ -54,58 +54,49 @@ class PlanManager implements Runnable {
                     videoPacket vp = (videoPacket) obj;
                     obj = null;
                     IVideoPicture videoPic = vp.getvideoPic();
-                    //System.out.println("Received Video "+vp.id);
                     synchronized (buffer.videoList) {
                         if(buffer.videoList != null) {
-                            //System.out.println("Buffer size " + buffer.videoList.indexOf(null));
                             buffer.videoList.set(vp.id, videoPic);
                         }
                     }
                     vp.buf = null;
-                    
-                //System.out.println("trying to play: "+buffer.videoList.get(vp.id).toString());
-                    //videoScreen.setImage(Utils.videoPictureToImage((IVideoPicture)buffer.videoList.get(vp.id)));
-                    //videoPic.delete();
                     vp = null;
                 } else if (obj instanceof audioPacket) {
                     audioPacket ap = (audioPacket) obj;
                     obj = null;
                     IAudioSamples audioSample = ap.getAudioSample();
-                    //System.out.println("Received Audio "+ap.id);
                     synchronized (buffer.audioList) {
                         if(buffer.audioList != null)
                             buffer.audioList.set(ap.id, audioSample);
                     }
                     ap.buf = null;
-                    //audioSample.delete();
                     ap = null;
                 } else if (obj instanceof configPacket) {
                     configPacket cp = (configPacket) obj;
                     obj = null;
                     if (cp.cmd == configPacket.CMD.DONE) {
-                        //client.exitFlag = true;
                         cp = null;
+                        client.doneFlag = true;
                         break;
                     }
                 }
                 mainFrame.validate();
                 mainFrame.repaint();
             } catch (IOException ex) {
-                ex.printStackTrace();
+                Logger.getLogger(PlanManager.class.getName()).log(Level.SEVERE, null, ex);
                 break;
             } catch (ClassNotFoundException ex) {
-                ex.printStackTrace();
+                Logger.getLogger(PlanManager.class.getName()).log(Level.SEVERE, null, ex);
                 break;
             }
         }
         try {
             server.close();
         } catch (IOException ex) {
-            ex.printStackTrace();
+            Logger.getLogger(PlanManager.class.getName()).log(Level.SEVERE, null, ex);
         }
         end = System.nanoTime();
-        long duration = (end - start) / 1000000;
-        System.out.println("Buffer time: " + duration);
+        client.bufferTime = (end - start) / 1000000;
         System.out.println("Thread " + threadName + " exiting.");
     }
 

@@ -21,6 +21,8 @@ import com.mpstream.datastructures.*;
 import java.util.List;
 import javax.swing.JFrame;
 import com.mpstream.datastructures.ImageComponent;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Player implements Runnable{
     //The audio line we'll output sound to; it'll be the default audio device on your system if available
@@ -103,9 +105,7 @@ public class Player implements Runnable{
     public void run() {
         int rebuffer = 0;
         try {
-            //open audio line
-            
-            //initial buffer
+            client.statusLabel.setText("Status bar:\nBuffering");
             t.sleep(2500);     
             IAudioSamples ia;
             synchronized(buffer.audioList) {
@@ -113,11 +113,8 @@ public class Player implements Runnable{
                 ia = (IAudioSamples)buffer.audioList.get(0);
                 //openJavaSound(ia);
             }
-            
-            
             synchronized(buffer.videoList) {
                 while(buffer.videoList.indexOf(null) == 0) {}
-                //System.out.println(buffer.videoList.indexOf(null));
                 IVideoPicture vp = (IVideoPicture)buffer.videoList.get(0);
                 keyframeTimestamp = vp.getTimeStamp();
             }
@@ -126,12 +123,13 @@ public class Player implements Runnable{
                 if(client.exitFlag)
                     break;
                 if(bufferFlag) {
-                    t.sleep(5000);
+                    t.sleep(3000);
+                    client.statusLabel.setText("Status bar:\nPlaying Video");
                 }
                 IVideoPicture videoPic = null;
                 synchronized(buffer.videoList) {
                     if(buffer.videoList.indexOf(null) <= video) {
-                        System.out.println("buffering");
+                        client.statusLabel.setText("Status bar:\nBuffering");
                         bufferFlag = true;
                         rebuffer++;
                         continue;
@@ -154,19 +152,22 @@ public class Player implements Runnable{
                         mainFrame.validate();
                         mainFrame.repaint();
                         if(buffer.videoList.indexOf(null) == buffer.videoList.size()-1 && buffer.videoList.indexOf(null) ==  video) {
-                            System.out.println("No of rebuffer events: "+rebuffer);
                             client.exitFlag = true;
                         }
                     }
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            Logger.getLogger(Player.class.getName()).log(Level.SEVERE, null, ex);
         }
+        client.exitFlag = true;
+        client.statusLabel.setText("Status bar:\nFinished playing video");
+        client.statusLabel.append("\nBuffer time: " + client.bufferTime);
+        System.out.println("Buffer time: " + client.bufferTime);
+        client.statusLabel.append("\nNo of rebuffer events: " +  rebuffer);
         System.out.println("No of rebuffer events: " +  rebuffer);
         System.out.println("Thread " +  threadName + " exiting.");
     }
-    
     public void start() {
         System.out.println("Starting " +  threadName );
         if (t == null) {

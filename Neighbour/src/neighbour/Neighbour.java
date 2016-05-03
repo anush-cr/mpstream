@@ -31,10 +31,11 @@ import java.net.MulticastSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import com.mpstream.datastructures.configPacket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Neighbour {
     private static JFrame mainFrame;
-    private static JTextArea statusLabel; //used in proxy class
     private static JPanel controlPanel;
     private static JButton acceptButton;
     private static JButton declineButton;
@@ -64,7 +65,7 @@ public class Neighbour {
                 String decodedPath = URLDecoder.decode((new File(path)).getParentFile().getPath() , "UTF-8");
                 decodedPath += "/assets/server.txt"; //UNIX path
                 //decodedPath += "\\assets\\server.txt"; //windows path
-                statusLabel.setText("Status bar:\n"+"looking up server ip address from "+decodedPath);
+                //statusLabel.setText("Status bar:\n"+"looking up server ip address from "+decodedPath);
                 //System.out.println(decodedPath);
                 FileReader fr = new FileReader(decodedPath);
                 BufferedReader br = new BufferedReader(fr);
@@ -89,18 +90,16 @@ public class Neighbour {
                             out2.reset();
                         Object obj = in.readObject();
                         if(obj != null){
-                            //System.out.println(obj.toString());
                             out2.writeObject(obj);
                         }
 
                     } catch (ClassNotFoundException ex) {
-                        ex.printStackTrace();
+                        Logger.getLogger(Proxy.class.getName()).log(Level.SEVERE, null, ex);
                         break;
                     }
                 }
             } catch(IOException ex) {
-                ex.printStackTrace();
-                statusLabel.setText(ex.toString());
+                Logger.getLogger(Proxy.class.getName()).log(Level.SEVERE, null, ex);
             }
             helping = false;
             System.out.println("Thread " +  threadName + " exiting.");
@@ -138,7 +137,7 @@ public class Neighbour {
     
     private void prepareGUI() {
         mainFrame = new JFrame("Neighbour - Multipath Streaming");
-        mainFrame.setSize(450,250);
+        mainFrame.setSize(450,150);
         mainFrame.setLayout(new BorderLayout());
         mainFrame.addWindowListener(new WindowAdapter() {
            @Override
@@ -174,18 +173,9 @@ public class Neighbour {
         declineButton.addActionListener(new ClickListener());
         controlPanel.add(declineButton);
         controlPanel.add(Box.createRigidArea(new Dimension(25,0)));
-        statusLabel = new JTextArea("");
-        statusLabel.setPreferredSize(new Dimension(450, 100));
-        statusLabel.setOpaque(true);
-        statusLabel.setLineWrap(true);
-        statusLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        statusLabel.setBackground(Color.BLACK);
-        statusLabel.setForeground(Color.WHITE);
-        statusLabel.setText("Status bar:\n");
         controlPanel.setVisible(false);
         mainFrame.add(state,BorderLayout.NORTH);
         mainFrame.add(controlPanel,BorderLayout.LINE_END);
-        mainFrame.add(statusLabel,BorderLayout.SOUTH);
         mainFrame.setVisible(true);
     }
     
@@ -225,8 +215,8 @@ public class Neighbour {
                     bais.close();
                     cp = null;
                 }
-            } catch(Exception e) {
-                e.printStackTrace();
+            } catch(Exception ex) {
+                Logger.getLogger(Neighbour.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
